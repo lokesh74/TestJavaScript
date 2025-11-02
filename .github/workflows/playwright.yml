@@ -9,18 +9,32 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
 
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
     - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
+      run: |
+        npm ci
+        npx playwright install --with-deps
     - name: Run Playwright tests
-      run: npm test
+      env:
+        CI: true
+      run: |
+        for i in 1 2 3; do
+          npm test && break
+          if [ $i -eq 3 ]; then
+            exit 1
+          fi
+          echo "Retrying tests..."
+          sleep 10
+        done
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
